@@ -10,20 +10,20 @@ import (
 )
 
 func main() {
-	// コマンドを作成
+	// make commands of update
 	cmd := exec.Command("cmd.exe", "/C", "scoop update && scoop update *")
 
-	// 標準出力をキャプチャ
+	// capture stdout
 	stdoutPipe, _ := cmd.StdoutPipe()
 
-	// コマンドを実行
+	// catch error
 	err := cmd.Start()
 	if err != nil {
 		fmt.Println("コマンドの実行中にエラーが発生しました:", err)
 		return
 	}
 
-	// プログレスバーの設定
+	// configure progress bar
 	bar := progressbar.NewOptions(-1,
 		progressbar.OptionSetDescription("Scoopアップデート中"),
 		progressbar.OptionSpinnerType(14),
@@ -37,7 +37,7 @@ func main() {
 			BarEnd:        "]",
 		}))
 
-	// 標準出力からデータを読み取り、プログレスバーに反映
+	// read data from stdout and update progress bar
 	buffer := make([]byte, 1024)
 	for {
 		n, err := stdoutPipe.Read(buffer)
@@ -52,7 +52,7 @@ func main() {
 		fmt.Print(output)
 	}
 
-	// コマンドの終了を待機
+	// catch error
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Println("コマンドの実行中にエラーが発生しました:", err)
@@ -61,14 +61,14 @@ func main() {
 
 	fmt.Println("Scoopパッケージのアップデートが完了しました。")
 
-	// クリーンアップとキャッシュ削除コマンドを作成
+	// make commands of cleanup and cache remove
 	cleanupCmd := exec.Command("cmd.exe", "/C", "scoop cleanup * && scoop cache rm *")
 	
-	// 標準出力をキャプチャ
+	// capture stdout
 	cleanupCmd.Stdout = os.Stdout
 	cleanupCmd.Stderr = os.Stderr
 
-	// クリーンアップとキャッシュ削除コマンドを実行
+	// run commands of cleanup and cache remove
 	err = cleanupCmd.Run()
 	if err != nil {
 		fmt.Println("クリーンアップコマンドの実行中にエラーが発生しました:", err)
@@ -77,7 +77,7 @@ func main() {
 
 	fmt.Println("古いパッケージのクリーンアップとキャッシュの削除が完了しました。")
 
-	// プログラムが終了しないように待機
+	// wait for enter key
 	fmt.Println("Enterキーを押してプログラムを終了してください...")
 	var input string
 	fmt.Scanln(&input)
