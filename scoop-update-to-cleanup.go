@@ -1,3 +1,4 @@
+//go:generate go-winres make --product-version=git-tag
 package main
 
 import (
@@ -63,7 +64,7 @@ func main() {
 
 	// make commands of cleanup and cache remove
 	cleanupCmd := exec.Command("cmd.exe", "/C", "scoop cleanup * && scoop cache rm *")
-	
+
 	// capture stdout
 	cleanupCmd.Stdout = os.Stdout
 	cleanupCmd.Stderr = os.Stderr
