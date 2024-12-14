@@ -2,7 +2,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,13 +16,14 @@ func main() {
 	// make commands of update
 	cmd := exec.Command("cmd.exe", "/C", "scoop update && scoop update *")
 
-	// capture stdout
+	// capture stdout and stderr
 	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
 
-	// catch error
+	// start command
 	err := cmd.Start()
 	if err != nil {
-		fmt.Println("コマンドの実行中にエラーが発生しました:", err)
+		fmt.Fprintln(os.Stderr, "コマンドの実行中にエラーが発生しました:", err)
 		return
 	}
 
@@ -38,25 +41,14 @@ func main() {
 			BarEnd:        "]",
 		}))
 
-	// read data from stdout and update progress bar
-	buffer := make([]byte, 1024)
-	for {
-		n, err := stdoutPipe.Read(buffer)
-		if err != nil {
-			break
-		}
-		output := string(buffer[:n])
-		// Scoopの出力に進捗情報が含まれているか確認
-		if strings.Contains(output, "Updating") {
-			bar.Add(1)
-		}
-		fmt.Print(output)
-	}
+	// read data from stdout and stderr, and update progress bar
+	go readPipe(stdoutPipe, bar)
+	go readPipe(stderrPipe, bar)
 
-	// catch error
+	// wait for command to finish
 	err = cmd.Wait()
 	if err != nil {
-		fmt.Println("コマンドの実行中にエラーが発生しました:", err)
+		fmt.Fprintln(os.Stderr, "コマンドの実行中にエラーが発生しました:", err)
 		return
 	}
 
@@ -65,14 +57,14 @@ func main() {
 	// make commands of cleanup and cache remove
 	cleanupCmd := exec.Command("cmd.exe", "/C", "scoop cleanup * && scoop cache rm *")
 
-	// capture stdout
+	// capture stdout and stderr
 	cleanupCmd.Stdout = os.Stdout
 	cleanupCmd.Stderr = os.Stderr
 
 	// run commands of cleanup and cache remove
 	err = cleanupCmd.Run()
 	if err != nil {
-		fmt.Println("クリーンアップコマンドの実行中にエラーが発生しました:", err)
+		fmt.Fprintln(os.Stderr, "クリーンアップコマンドの実行中にエラーが発生しました:", err)
 		return
 	}
 
@@ -82,4 +74,18 @@ func main() {
 	fmt.Println("Enterキーを押してプログラムを終了してください...")
 	var input string
 	fmt.Scanln(&input)
+}
+
+func readPipe(pipe io.Reader, bar *progressbar.ProgressBar) {
+	scanner := bufio.NewScanner(pipe)
+	for scanner.Scan() {
+		output := scanner.Text()
+		if strings.Contains(output, "Updating") {
+			bar.Add(1)
+		}
+		fmt.Println(output)
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "パイプの読み取り中にエラーが発生しました:", err)
+	}
 }
