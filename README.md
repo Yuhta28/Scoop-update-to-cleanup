@@ -10,7 +10,7 @@ Go app that performs everything from updating Scoop packages to deleting cache i
 certutil -hashfile scoop-update-to-cleanup.exe SHA256
 ```
 
-最新リリースのハッシュ値は[Releases](https://github.com/[your-username]/scoop-update-to-cleanup/releases)ページで確認できます。
+最新リリースのハッシュ値は[Releases](https://github.com/Yuhta28/scoop-update-to-cleanup/releases)ページで確認できます。
 
 ### Windows Defenderの警告について
 このソフトウェアは署名されていないため、Windows Defenderで警告が表示される場合があります。
