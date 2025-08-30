@@ -1,0 +1,43 @@
+name: Build and Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.1'
+
+      - name: Generate Windows resources
+        run: go generate
+
+      - name: Build executable
+        run: go build -ldflags="-s -w" -o scoop-update-to-cleanup.exe
+
+      - name: Generate checksums
+        run: |
+          certutil -hashfile scoop-update-to-cleanup.exe SHA256 > checksums.txt
+          echo "## Checksums" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "```" >> release-notes.md
+          echo "SHA256:" >> release-notes.md
+          certutil -hashfile scoop-update-to-cleanup.exe SHA256 | findstr /v "SHA256" | findstr /v "CertUtil" >> release-notes.md
+          echo "```" >> release-notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            scoop-update-to-cleanup.exe
+            checksums.txt
+          body_path: release-notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
