@@ -1,0 +1,49 @@
+name: Build and Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.1'
+
+      - name: Install go-winres
+        run: go install github.com/tc-hib/go-winres@latest
+
+      - name: Generate Windows resources
+        run: go generate
+
+      - name: Build executable
+        run: go build -ldflags="-s -w" -o scoop-update-to-cleanup.exe
+
+      - name: Generate checksums
+        run: |
+          certutil -hashfile scoop-update-to-cleanup.exe SHA256 > checksums.txt
+          echo "## Checksums" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "```" >> release-notes.md
+          echo "SHA256:" >> release-notes.md
+          certutil -hashfile scoop-update-to-cleanup.exe SHA256 | findstr /v "SHA256" | findstr /v "CertUtil" >> release-notes.md
+          echo "```" >> release-notes.md
+
+      - name: Create Release
+        run: |
+          gh release create ${{ github.ref_name }} `
+            scoop-update-to-cleanup.exe `
+            --title "Release ${{ github.ref_name }}" `
+            --notes "Automated release of Scoop Update to Cleanup tool"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
